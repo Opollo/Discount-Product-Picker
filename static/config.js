@@ -1,0 +1,1 @@
+const API_BASE = "https://discount-product-picker.onrender.com";
