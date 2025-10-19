@@ -1,4 +1,7 @@
 fastapi
 uvicorn
 requests
+<<<<<<< HEAD
 python-dotenv
+=======
+>>>>>>> 0e060a24a96597d666806035d03df7dfd2f6c18c
