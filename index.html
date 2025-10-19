@@ -2,108 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Discount Product Picker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 2rem;
-      background-color: #f0f4f8;
-    }
-    h1 {
-      text-align: center;
-      color: #222;
-    }
-    .loader {
-      text-align: center;
-      font-size: 1.2rem;
-      color: #666;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-    .product {
-      background: white;
-      border-radius: 10px;
-      padding: 1rem;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-      transition: transform 0.2s ease;
-    }
-    .product:hover {
-      transform: scale(1.02);
-    }
-    .platform {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: bold;
-      color: #0077cc;
-      margin-bottom: 0.5rem;
-    }
-    .platform img {
-      width: 24px;
-      height: 24px;
-    }
-    .name {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .price {
-      color: green;
-      font-weight: bold;
-    }
-    .original {
-      text-decoration: line-through;
-      color: red;
-      margin-left: 0.5rem;
-    }
-  </style>
+  <title>Discount Product Picker AI</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🛍️ Discount Product Picker</h1>
-  <div id="results" class="loader">Fetching discounted products...</div>
-
-  <script>
-    const logos = {
-      "Amazon": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-      "Jumia": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Jumia_logo.svg",
-      "Alibaba": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Alibaba_Group_logo.svg"
-    };
-
-    fetch("https://discount-product-picker.onrender.com/discounts")
-      .then(response => response.json())
-      .then(data => {
-        const container = document.getElementById("results");
-        container.className = "grid";
-        container.innerHTML = "";
-        data.forEach(item => {
-          const logo = logos[item.platform] || "";
-          const div = document.createElement("div");
-          div.className = "product";
-          div.innerHTML = `
-            <div class="platform">
-              ${logo ? `<img src="${logo}" alt="${item.platform} logo">` : ""}
-              ${item.platform}
-            </div>
-            <div class="name">${item.name}</div>
-            <div>
-              <span class="price">$${item.price}</span>
-              <span class="original">$${item.original_price}</span>
-            </div>
-          `;
-          container.appendChild(div);
-        });
-      })
-      .catch(error => {
-        const container = document.getElementById("results");
-        container.className = "loader";
-        container.innerHTML = "⚠️ Failed to load products. Please try again later.";
-        console.error("Error fetching data:", error);
-      });
-  </script>
+  <h1>🛍️ Discount Product Picker AI</h1>
+  <div id="filters">
+    <button onclick="fetchDeals('amazon')">Amazon</button>
+    <button onclick="fetchDeals('alibaba')">Alibaba</button>
+    <button onclick="fetchDeals('jumia')">Jumia</button>
+  </div>
+  <div id="product-list"></div>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
