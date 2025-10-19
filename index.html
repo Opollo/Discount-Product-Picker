@@ -3,61 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <title>Discount Product Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
       padding: 2rem;
-      background-color: #f5f5f5;
+      background-color: #f0f4f8;
     }
     h1 {
-      color: #333;
+      text-align: center;
+      color: #222;
+    }
+    .filter {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .loader {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #666;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
     }
     .product {
       background: white;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 1rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
+    }
+    .product:hover {
+      transform: scale(1.02);
     }
     .platform {
-      font-weight: bold;
-      color: #0077cc;
-    }
-    .price {
-      color: green;
-    }
-    .original {
-      text-decoration: line-through;
-      color: red;
-    }
-  </style>
-</head>
-<body>
-  <h1>🛍️ Discount Product Picker</h1>
-  <div id="results">Loading discounted products...</div>
-
-  <script>
-    fetch("https://discount-product-picker.onrender.com/discounts")
-      .then(response => response.json())
-      .then(data => {
-        const container = document.getElementById("results");
-        container.innerHTML = "";
-        data.forEach(item => {
-          const div = document.createElement("div");
-          div.className = "product";
-          div.innerHTML = `
-            <div class="platform">${item.platform}</div>
-            <div>${item.name}</div>
-            <div class="price">$${item.price}</div>
-            <div class="original">$${item.original_price}</div>
-          `;
-          container.appendChild(div);
-        });
-      })
-      .catch(error => {
-        document.getElementById("results").innerHTML = "Failed to load products.";
-        console.error("Error fetching data:", error);
-      });
-  </script>
-</body>
-</html>
+      display: flex;
+      align-items: center;
+      gap: 0.5rem
