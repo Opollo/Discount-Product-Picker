@@ -7,7 +7,7 @@ app = FastAPI()
 # 🔁 Redirect root to your frontend
 @app.get("/", include_in_schema=False)
 def redirect_to_frontend():
-    return RedirectResponse(url="https://opollo.github.io/discount-picker-ui/")  # Replace with your actual frontend URL
+    return RedirectResponse(url="https://opollo.github.io/discount-picker/")  # Replace with your actual frontend URL
 
 # 🛡️ Enable CORS so frontend can access backend
 app.add_middleware(
