@@ -5,36 +5,203 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🛍️ Discount Product Picker AI</title>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
-    h1 { text-align:center; margin:20px 0; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
 
     /* Filters */
-    #filters { text-align:center; margin-bottom:20px; }
-    #filters button, #filters select, #filters input { margin:5px; padding:6px 12px; border-radius:6px; border:1px solid #ccc; }
-    #filters button:hover { background-color:#1a73e8; color:#fff; border:none; }
+    #filters {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #filters button,
+    #filters select,
+    #filters input {
+      margin: 5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    #filters button:hover {
+      background-color: #1a73e8;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
 
     /* Container */
-    #deals-container { display:grid; gap:30px; padding:20px; max-width:1200px; margin:0 auto; }
+    #deals-container {
+      display: grid;
+      gap: 30px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
 
     /* Platform Section */
-    .platform-section { border-bottom:2px solid #eee; padding-bottom:20px; }
-    .platform-section h2 { font-size:1.8rem; margin-bottom:15px; color:#333; text-transform:uppercase; }
+    .platform-section {
+      border-bottom: 2px solid #eee;
+      padding-bottom: 20px;
+    }
+    .platform-section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      color: #333;
+      text-transform: uppercase;
+    }
 
     /* Deal Cards */
-    .deal-card { display:inline-block; width:calc(33.33% - 20px); margin:10px; border:1px solid #ddd; border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.05); transition:transform 0.2s, box-shadow 0.2s; background-color:#fff; text-align:center; padding:15px; }
-    .deal-card:hover { transform:translateY(-5px); box-shadow:0 8px 20px rgba(0,0,0,0.12); }
+    .deal-card {
+      display: inline-block;
+      width: calc(33.33% - 20px);
+      margin: 10px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+      background-color: #fff;
+      text-align: center;
+      padding: 15px;
+    }
+    .deal-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
 
-    .deal-card img { width:100%; height:150px; object-fit:contain; margin-bottom:10px; }
+    .deal-card img {
+      width: 100%;
+      height: 150px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
 
-    .deal-card h3 { font-size:1.1rem; margin:5px 0; color:#111; }
-    .deal-card p { margin:4px 0; font-size:0.95rem; color:#555; }
+    .deal-card h3 {
+      font-size: 1.1rem;
+      margin: 5px 0;
+      color: #111;
+    }
+    .deal-card p {
+      margin: 4px 0;
+      font-size: 0.95rem;
+      color: #555;
+    }
 
-    .deal-card a { display:inline-block; margin-top:8px; padding:6px 12px; background-color:#1a73e8; color:#fff; text-decoration:none; border-radius:6px; font-size:0.9rem; transition:background-color 0.2s; }
-    .deal-card a:hover { background-color:#155ab6; }
+    .deal-card a {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 12px;
+      background-color: #1a73e8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: background-color 0.2s;
+    }
+    .deal-card a:hover {
+      background-color: #155ab6;
+    }
 
     /* Discount Badge */
-    .image-container { position:relative; }
-    .discount-badge { position:absolute; top:8px; left:8px; background-color:#e53935; color:#fff; font-weight:bold; padding:4px 8px; border-radius:6px; font-size:0.85rem; box-shadow:0 2px 5px rgba(0,0,0,0.2); animation:pop 0.3s ease; }
-    .highest-discount { background-color:#ff9800; }
+    .image-container {
+      position: relative;
+    }
+    .discount-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background-color: #e53935;
+      color: #fff;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      animation: pop 0.3s ease;
+    }
+    .highest-discount {
+      background-color: #ff9800;
+    }
 
-    @keyframes pop { 0%{transform:scale(0.5);opacity:0;}50%{transform:scale(1.2);opacity:1;}100%{transform:s
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .deal-card { width: calc(50% - 20px); }
+    }
+    @media (max-width: 600px) {
+      .deal-card { width: calc(100% - 20px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🛍️ Discount Product Picker AI</h1>
+
+  <div id="filters">
+    <input type="text" id="search-keyword" placeholder="Search products...">
+    <button onclick="searchDeals()">Search</button>
+  </div>
+
+  <div id="deals-container">
+    <div class="platform-section" id="amazon-section">
+      <h2>Amazon Deals</h2>
+      <!-- Deals will appear here -->
+    </div>
+  </div>
+
+  <script>
+    // Dummy data for demonstration
+    const dummyDeals = [
+      { title: "Wireless Earbuds", price: 29.99, discount: 25, image: "https://via.placeholder.com/200x150", url: "#" },
+      { title: "Smart Watch", price: 79.99, discount: 40, image: "https://via.placeholder.com/200x150", url: "#" },
+      { title: "Bluetooth Speaker", price: 49.99, discount: 30, image: "https://via.placeholder.com/200x150", url: "#" },
+      { title: "Laptop Stand", price: 19.99, discount: 15, image: "https://via.placeholder.com/200x150", url: "#" },
+      { title: "Gaming Mouse", price: 39.99, discount: 35, image: "https://via.placeholder.com/200x150", url: "#" },
+      { title: "LED Desk Lamp", price: 24.99, discount: 20, image: "https://via.placeholder.com/200x150", url: "#" },
+    ];
+
+    function searchDeals() {
+      const keyword = document.getElementById('search-keyword').value.toLowerCase();
+      const container = document.getElementById('amazon-section');
+      container.innerHTML = '<h2>Amazon Deals</h2>'; // reset
+
+      const filteredDeals = dummyDeals.filter(deal => deal.title.toLowerCase().includes(keyword));
+
+      filteredDeals.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'deal-card';
+        card.innerHTML = `
+          <div class="image-container">
+            <img src="${item.image}" alt="${item.title}">
+            <div class="discount-badge">${item.discount ? `-${item.discount}%` : ''}</div>
+          </div>
+          <h3>${item.title}</h3>
+          <p>$${item.price}</p>
+          <a href="${item.url}" target="_blank">View Deal</a>
+        `;
+        container.appendChild(card);
+      });
+
+      if (filteredDeals.length === 0) {
+        const noResult = document.createElement('p');
+        noResult.textContent = "No products found.";
+        container.appendChild(noResult);
+      }
+    }
+
+    // Initial load
+    searchDeals();
+  </script>
+</body>
+</html>
