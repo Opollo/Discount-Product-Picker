@@ -1,6 +1,4 @@
-// server.js
 import express from "express";
-import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
@@ -9,33 +7,28 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
-// Example function to simulate fetching deals from different platforms
-async function fetchDeals() {
-  return {
-    amazon: [
-      { name: "Wireless Earbuds", price: "$29.99", link: "https://amazon.com" },
-      { name: "Smart Watch", price: "$45.99", link: "https://amazon.com" },
-    ],
-    alibaba: [
-      { name: "Bluetooth Speaker", price: "$12.50", link: "https://alibaba.com" },
-      { name: "LED Light Bulbs", price: "$9.99", link: "https://alibaba.com" },
-    ],
-    jumia: [
-      { name: "Power Bank", price: "UGX 35,000", link: "https://jumia.ug" },
-      { name: "Flash Drive 32GB", price: "UGX 22,000", link: "https://jumia.ug" },
-    ],
-  };
+// ✅ Dummy data for all platforms
+const SAMPLE_DEALS = {
+  amazon: [
+    { name: "Wireless Earbuds", price: "$29.99", discount: "40%", link: "https://amazon.com" },
+    { name: "Smart Watch", price: "$45.99", discount: "25%", link: "https://amazon.com" },
+  ],
+  alibaba: [
+    { name: "Bluetooth Speaker", price: "$12.50", discount: "30%", link: "https://alibaba.com" },
+    { name: "LED Light Bulbs", price: "$9.99", discount: "20%", link: "https://alibaba.com" },
+  ],
+  jumia: [
+    { name: "Power Bank", price: "UGX 35,000", discount: "15%", link: "https://jumia.ug" },
+    { name: "Flash Drive 32GB", price: "UGX 22,000", discount: "10%", link: "https://jumia.ug" },
+  ],
+};
+
+// Simulate fetching deals (could be replaced with real API calls)
+async function fetchDeals(platform = null) {
+  if (!platform) return SAMPLE_DEALS;
+  platform = platform.toLowerCase();
+  if (!SAMPLE_DEALS[platform]) throw new Error(`Platform '${platform}' not found`);
+  return { [platform]: SAMPLE_DEALS[platform] };
 }
 
-// Endpoint to fetch deals
-app.get("/api/deals", async (req, res) => {
-  try {
-    const deals = await fetchDeals();
-    res.json(deals);
-  } catch (error) {
-    console.error("Error fetching deals:", error);
-    res.status(500).json({ error: "Failed to fetch deals" });
-  }
-});
-
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+// Endpoint: Get all d
