@@ -98,12 +98,7 @@
 
   <script>
     // === CONFIG ===
-    const CONFIG = {
-      GOOGLE_API_KEY: "AIzaSyCxPh5Umy6Un20Gy3JtE5NoC7owNswRcJw",
-      GOOGLE_CX: "d2c3408b5c6d4402b", // Default public CX — replace with your own for production
-      AMAZON_PROXY: "https://your-proxy-server.com/amazon-search", // Replace with real proxy
-      TRENDS_PROXY: "https://your-proxy-server.com/trends"
-    };
+    const BACKEND_URL = "http://localhost:5000";  // Your Flask backend
 
     const chat = document.getElementById("chat-container");
     const input = document.getElementById("user-input");
@@ -128,7 +123,7 @@
 
     const replaceLastMessage = html => chat.lastChild.innerHTML = html;
 
-    // === Discount Detection Logic ===
+    // === Client-Side Discount Enrichment (for Amazon) ===
     function parseDiscount(snippet, title = "") {
       const text = `${title} ${snippet}`.toLowerCase();
       const patterns = [
@@ -158,40 +153,50 @@
       return null;
     }
 
-    // === Query Handling ===
+    // === Integrated Query Handling (via Backend) ===
     async function processQuery(query) {
       addMessage(`<span class="loading">Searching for deals ≥30% off...</span>`, "bot");
       try {
-        const [searchResults, products, trends] = await Promise.all([
-          googleSearch(query),
-          fetchAmazonProducts(query),
-          fetchTrends(query)
+        // Fetch all via backend proxies
+        const [searchRes, amazonRes, trendsRes] = await Promise.all([
+          fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(query)}`),
+          fetch(`${BACKEND_URL}/amazon-search?q=${encodeURIComponent(query)}`),
+          fetch(`${BACKEND_URL}/trends?q=${encodeURIComponent(query)}`)
         ]);
+
+        const searchData = await searchRes.json();
+        const amazonData = await amazonRes.json();
+        const trendsData = await trendsRes.json();
+
+        const searchResults = searchData.items || searchData;  // Handle both formats
+        const products = amazonData.products || [];
+        const trends = trendsData.timeline || [];
 
         let html = `<strong>🔎 Web Insight:</strong> ${searchResults[0]?.snippet?.substring(0, 150) || "No results."}...<hr/>`;
 
         const allProducts = [...products];
-        const bestBuys = [];
+        const bestBuys = searchData.best_buys || [];  // From backend discount parsing
 
-        // Enrich Amazon products with discount detection
+        // Enrich Amazon products with client-side discount (if backend didn't)
         for (const p of products) {
-          const discount = parseDiscount(p.title + " " + (p.snippet || ""), p.title);
-          p.discount = discount;
-          if (discount && discount.percent >= 30) {
-            bestBuys.push({ ...p, source: 'Amazon' });
+          if (!p.discount) {
+            const discount = parseDiscount(p.title + " " + (p.snippet || ""), p.title);
+            p.discount = discount;
+            if (discount && discount.percent >= 30) {
+              bestBuys.push({ ...p, source: 'Amazon' });
+            }
           }
         }
 
-        // Scan Google Search snippets for deals
-        for (const item of searchResults.slice(0, 10)) {
-          const discount = parseDiscount(item.snippet, item.title);
-          if (discount && discount.percent >= 30) {
+        // Scan Google snippets for additional deals (backend already filters, but enrich)
+        for (const item of (searchResults.items || searchResults.slice(0, 10))) {
+          if (item.discount && item.discount.percent >= 30 && !bestBuys.some(b => b.url === item.url)) {
             bestBuys.push({
               title: item.title.substring(0, 60),
-              url: item.link,
-              discount,
-              source: new URL(item.link).hostname,
-              image: 'https://via.placeholder.com/200?text=Deal'
+              url: item.link || item.url,
+              discount: item.discount,
+              source: new URL(item.url || item.link).hostname,
+              image: item.image || 'https://via.placeholder.com/200?text=Deal'
             });
           }
         }
@@ -203,7 +208,7 @@
             const badge = p.discount.percent ? `${p.discount.percent}% OFF` : 'SALE';
             html += `
               <div class="product-card">
-                <img src="${p.image}" alt="${p.title}">
+                <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.title}">
                 <div class="discount-badge best-buy-badge">⭐ BEST BUY</div>
                 <div class="discount-badge">${badge}</div>
                 <h4>${p.title}...</h4>
@@ -234,6 +239,14 @@
           html += `</div>`;
         }
 
+        // === Other Deals from Search ===
+        if (searchData.other_results && searchData.other_results.length > 0) {
+          html += `<strong>🔍 Other Deals:</strong>`;
+          for (const item of searchData.other_results.slice(0, 4)) {
+            html += `<div style="margin:1rem 0;"><strong>${item.title}</strong><br>${item.snippet}<br><a href="${item.url}" target="_blank">Link</a></div>`;
+          }
+        }
+
         if (trends.length > 1) {
           html += `<strong>📈 Trend (Last 7 Days):</strong><canvas id="trendChart" class="trend-chart"></canvas>`;
         }
@@ -241,58 +254,20 @@
         replaceLastMessage(html);
         if (trends.length > 1) drawTrendChart(trends);
       } catch (err) {
-        replaceLastMessage(`❌ Error: ${err.message}`);
-      }
-    }
-
-    // === API Functions ===
-    async function googleSearch(q) {
-      const url = `https://www.googleapis.com/customsearch/v1?key=${CONFIG.GOOGLE_API_KEY}&cx=${CONFIG.GOOGLE_CX}&q=${encodeURIComponent(q + " 30% off OR discount OR sale OR deal")}&num=10`;
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Google API error");
-        const data = await res.json();
-        return data.items || [];
-      } catch (err) {
+        // Fallback mock data
+        replaceLastMessage(`<em>Using demo data (backend offline? Start with python main.py)</em><hr/>
+          <div class="product-grid">
+            <div class="product-card"><h4>Sample Laptop (35% OFF)</h4><div class="price">$649</div><a href="https://amazon.com">Buy</a></div>
+            <div class="product-card"><h4>Earbuds (40% OFF)</h4><div class="price">$59</div><a href="https://amazon.com">Buy</a></div>
+          </div>`);
         console.error(err);
-        return [];
-      }
-    }
-
-    async function fetchAmazonProducts(q) {
-      try {
-        const res = await fetch(`${CONFIG.AMAZON_PROXY}?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        return (data.products || []).map(p => ({
-          ...p,
-          url: p.url || "https://amazon.com",
-          image: p.image || "https://via.placeholder.com/200"
-        }));
-      } catch {
-        return [
-          { title: "Sample Deal: Laptop Pro", price: "699", image: "https://via.placeholder.com/200?text=Deal", url: "https://amazon.com", snippet: "was $999 now $699" },
-          { title: "Earbuds - 40% Off", price: "59", image: "https://via.placeholder.com/200?text=Earbuds", url: "https://amazon.com", snippet: "save 40%" }
-        ];
-      }
-    }
-
-    async function fetchTrends(q) {
-      try {
-        const res = await fetch(`${CONFIG.TRENDS_PROXY}?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        return data.timeline || [];
-      } catch {
-        const now = Date.now();
-        return Array.from({ length: 7 }, (_, i) => ({
-          date: new Date(now - (6 - i) * 86400000).toLocaleDateString("en", { weekday: "short" }),
-          value: Math.floor(Math.random() * 50) + 50
-        }));
       }
     }
 
     // === Draw Trend Chart ===
     function drawTrendChart(data) {
       const canvas = document.getElementById("trendChart");
+      if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const w = canvas.width = canvas.parentElement.offsetWidth;
       const h = canvas.height = 200;
@@ -336,13 +311,45 @@
 
     if (recognition) {
       recognition.onresult = e => {
-        input.value = e.results[0][0].transcript;
+        const transcript = e.results[0][0].transcript;
+        input.value = transcript;
         micBtn.disabled = false; micBtn.textContent = "🎤";
-        sendBtn.click();
+        sendBtn.click();  // Triggers processQuery via /search
       };
       recognition.onerror = () => { micBtn.disabled = false; micBtn.textContent = "🎤"; };
       recognition.onend = () => { micBtn.disabled = false; micBtn.textContent = "🎤"; };
     }
+
+    // === Alternative: MediaRecorder for File-Based Speech (Uncomment for Upload to /speech) ===
+    /*
+    async function recordAudio() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks = [];
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/wav' });
+        const base64 = await blobToBase64(blob);
+        const res = await fetch(`${BACKEND_URL}/speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio: base64 })
+        });
+        const data = await res.json();
+        processQuery(data.transcript);  // Or use data.search_results
+      };
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), 5000);  // 5s recording
+    }
+    function blobToBase64(blob) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      });
+    }
+    // Replace micBtn.onclick with: micBtn.onclick = recordAudio;
+    */
 
     // === Welcome Message ===
     window.onload = () => addMessage(`
