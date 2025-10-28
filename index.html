@@ -8,10 +8,12 @@
     :root {
       --primary: #4f46e5;
       --success: #10b981;
+      --danger: #ef4444;
       --bg: #f8fafc;
       --text: #1e293b;
       --border: #e2e8f0;
       --card: #ffffff;
+      --best-buy: #fbbf24;
     }
     * { box-sizing: border-box; }
     body {
@@ -42,12 +44,21 @@
     .product-card {
       border: 1px solid var(--border); border-radius: 0.75rem;
       background: white; text-align: center; overflow: hidden;
-      transition: transform 0.2s ease;
+      transition: transform 0.2s ease; position: relative;
     }
     .product-card:hover { transform: scale(1.02); }
     .product-card img { width: 100%; height: 150px; object-fit: cover; }
     .product-card h4 { margin: 0.5rem; font-size: 1rem; color: var(--text); }
     .price { color: #e91e63; font-weight: 600; }
+    .original-price { text-decoration: line-through; color: #94a3b8; font-size: 0.85rem; }
+    .discount-badge {
+      position: absolute; top: 8px; right: 8px; background: var(--danger); color: white;
+      font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 1rem;
+    }
+    .best-buy-badge {
+      background: var(--best-buy); color: #1e293b; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
     .trend-chart { width: 100%; height: 200px; margin-top: 1rem; }
     #input-area {
       display: flex; padding: 1rem; gap: 0.5rem;
@@ -74,11 +85,11 @@
 </head>
 
 <body>
-  <header>🛍️ AI Shopping & Trends Chatbot</header>
+  <header>AI Shopping & Trends Chatbot</header>
   <div id="chat-container"></div>
 
   <div id="input-area">
-    <input id="user-input" type="text" placeholder="Ask about products, prices, or trends..." />
+    <input id="user-input" type="text" placeholder="Ask about products with 30%+ off..." />
     <button id="send-btn">Send</button>
     <button id="mic-btn" title="Speak">🎤</button>
   </div>
@@ -86,11 +97,11 @@
   <footer>Powered by Google Search, Amazon, & Trends APIs</footer>
 
   <script>
-    // === CONFIG (replace with your real endpoints) ===
+    // === CONFIG ===
     const CONFIG = {
-      GOOGLE_API_KEY: "YOUR_GOOGLE_CUSTOM_SEARCH_KEY",
-      GOOGLE_CX: "YOUR_SEARCH_ENGINE_ID",
-      AMAZON_PROXY: "https://your-proxy-server.com/amazon-search",
+      GOOGLE_API_KEY: "AIzaSyCxPh5Umy6Un20Gy3JtE5NoC7owNswRcJw",
+      GOOGLE_CX: "d2c3408b5c6d4402b", // Default public CX — replace with your own for production
+      AMAZON_PROXY: "https://your-proxy-server.com/amazon-search", // Replace with real proxy
       TRENDS_PROXY: "https://your-proxy-server.com/trends"
     };
 
@@ -117,9 +128,39 @@
 
     const replaceLastMessage = html => chat.lastChild.innerHTML = html;
 
+    // === Discount Detection Logic ===
+    function parseDiscount(snippet, title = "") {
+      const text = `${title} ${snippet}`.toLowerCase();
+      const patterns = [
+        /was\s*\$\s*([\d,]+\.?\d*)\s*now\s*\$\s*([\d,]+\.?\d*)/,
+        /\$?\s*([\d,]+\.?\d*)\s*[\–\-]\s*\$?\s*([\d,]+\.?\d*)/,
+        /(\d+)%\s*off/,
+        /save\s*(\d+)%/,
+        /now\s*\$?\s*([\d,]+\.?\d*)\s*\(was\s*\$?\s*([\d,]+\.?\d*)\)/
+      ];
+
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+          if (match[0].includes('%')) {
+            const percent = parseInt(match[1]);
+            if (percent >= 30) return { percent, type: 'percent' };
+          } else if (match[1] && match[2]) {
+            const original = parseFloat(match[1].replace(/,/g, ''));
+            const current = parseFloat(match[2].replace(/,/g, ''));
+            if (original > current) {
+              const percent = Math.round(((original - current) / original) * 100);
+              if (percent >= 30) return { percent, original, current, type: 'price' };
+            }
+          }
+        }
+      }
+      return null;
+    }
+
     // === Query Handling ===
     async function processQuery(query) {
-      addMessage(`<span class="loading">Thinking...</span>`, "bot");
+      addMessage(`<span class="loading">Searching for deals ≥30% off...</span>`, "bot");
       try {
         const [searchResults, products, trends] = await Promise.all([
           googleSearch(query),
@@ -127,21 +168,71 @@
           fetchTrends(query)
         ]);
 
-        let html = `<strong>🔎 Web Insight:</strong> ${searchResults[0]?.snippet || "No results found."}<hr/>`;
+        let html = `<strong>🔎 Web Insight:</strong> ${searchResults[0]?.snippet?.substring(0, 150) || "No results."}...<hr/>`;
 
-        if (products.length) {
-          html += `<strong>🛒 Top Products:</strong><div class="product-grid">`;
-          for (const p of products.slice(0, 4)) {
+        const allProducts = [...products];
+        const bestBuys = [];
+
+        // Enrich Amazon products with discount detection
+        for (const p of products) {
+          const discount = parseDiscount(p.title + " " + (p.snippet || ""), p.title);
+          p.discount = discount;
+          if (discount && discount.percent >= 30) {
+            bestBuys.push({ ...p, source: 'Amazon' });
+          }
+        }
+
+        // Scan Google Search snippets for deals
+        for (const item of searchResults.slice(0, 10)) {
+          const discount = parseDiscount(item.snippet, item.title);
+          if (discount && discount.percent >= 30) {
+            bestBuys.push({
+              title: item.title.substring(0, 60),
+              url: item.link,
+              discount,
+              source: new URL(item.link).hostname,
+              image: 'https://via.placeholder.com/200?text=Deal'
+            });
+          }
+        }
+
+        // === Display Best Buys First ===
+        if (bestBuys.length > 0) {
+          html += `<strong>🎉 BEST BUYS (≥30% OFF):</strong><div class="product-grid">`;
+          for (const p of bestBuys.slice(0, 4)) {
+            const badge = p.discount.percent ? `${p.discount.percent}% OFF` : 'SALE';
+            html += `
+              <div class="product-card">
+                <img src="${p.image}" alt="${p.title}">
+                <div class="discount-badge best-buy-badge">⭐ BEST BUY</div>
+                <div class="discount-badge">${badge}</div>
+                <h4>${p.title}...</h4>
+                ${p.discount.original ? `
+                  <div><span class="original-price">$${p.discount.original}</span> → <span class="price">$${p.discount.current}</span></div>
+                ` : `<div class="price">View Deal</div>`}
+                <a href="${p.url}" target="_blank" style="font-size:0.8rem;color:#4f46e5;">Open →</a>
+              </div>`;
+          }
+          html += `</div><hr/>`;
+        } else {
+          html += `<em>No deals ≥30% off found. Try "laptops on sale", "iPhone discount", etc.</em><hr/>`;
+        }
+
+        // === Regular Products ===
+        if (allProducts.length) {
+          html += `<strong>🛒 Other Products:</strong><div class="product-grid">`;
+          for (const p of allProducts.slice(0, 4)) {
+            if (bestBuys.some(b => b.url === p.url)) continue;
             html += `
               <div class="product-card">
                 <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.title}">
                 <h4>${p.title.substring(0, 50)}...</h4>
-                <div class="price">$${p.price || 'N/A'}</div>
+                <div class="price">$${p.price || 'Check'}</div>
                 <a href="${p.url}" target="_blank" style="font-size:0.8rem;color:#4f46e5;">View →</a>
               </div>`;
           }
           html += `</div>`;
-        } else html += `<em>No products found.</em>`;
+        }
 
         if (trends.length > 1) {
           html += `<strong>📈 Trend (Last 7 Days):</strong><canvas id="trendChart" class="trend-chart"></canvas>`;
@@ -156,23 +247,31 @@
 
     // === API Functions ===
     async function googleSearch(q) {
-      const url = `https://www.googleapis.com/customsearch/v1?key=${CONFIG.GOOGLE_API_KEY}&cx=${CONFIG.GOOGLE_CX}&q=${encodeURIComponent(q)}`;
+      const url = `https://www.googleapis.com/customsearch/v1?key=${CONFIG.GOOGLE_API_KEY}&cx=${CONFIG.GOOGLE_CX}&q=${encodeURIComponent(q + " 30% off OR discount OR sale OR deal")}&num=10`;
       try {
         const res = await fetch(url);
+        if (!res.ok) throw new Error("Google API error");
         const data = await res.json();
         return data.items || [];
-      } catch { return []; }
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
     }
 
     async function fetchAmazonProducts(q) {
       try {
         const res = await fetch(`${CONFIG.AMAZON_PROXY}?q=${encodeURIComponent(q)}`);
         const data = await res.json();
-        return data.products || [];
+        return (data.products || []).map(p => ({
+          ...p,
+          url: p.url || "https://amazon.com",
+          image: p.image || "https://via.placeholder.com/200"
+        }));
       } catch {
         return [
-          { title: "Sample Laptop Pro", price: "999.99", image: "https://via.placeholder.com/200?text=Laptop", url: "https://amazon.com" },
-          { title: "Wireless Earbuds", price: "79.99", image: "https://via.placeholder.com/200?text=Earbuds", url: "https://amazon.com" }
+          { title: "Sample Deal: Laptop Pro", price: "699", image: "https://via.placeholder.com/200?text=Deal", url: "https://amazon.com", snippet: "was $999 now $699" },
+          { title: "Earbuds - 40% Off", price: "59", image: "https://via.placeholder.com/200?text=Earbuds", url: "https://amazon.com", snippet: "save 40%" }
         ];
       }
     }
@@ -200,14 +299,12 @@
       ctx.clearRect(0, 0, w, h);
       const max = Math.max(...data.map(d => d.value)) * 1.2;
 
-      // Grid
       ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
       for (let i = 0; i <= 5; i++) {
         const y = (h * i) / 5;
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       }
 
-      // Line
       ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 3;
       ctx.beginPath();
       data.forEach((d, i) => {
@@ -217,7 +314,6 @@
       });
       ctx.stroke();
 
-      // Labels
       ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif";
       data.forEach((d, i) => ctx.fillText(d.date, (w * i) / (data.length - 1) - 10, h - 5));
     }
@@ -244,19 +340,15 @@
         micBtn.disabled = false; micBtn.textContent = "🎤";
         sendBtn.click();
       };
-      recognition.onerror = () => { micBtn.disabled = false; micBtn.textContent = "🎤"; addMessage("Voice input failed.", "bot"); };
+      recognition.onerror = () => { micBtn.disabled = false; micBtn.textContent = "🎤"; };
       recognition.onend = () => { micBtn.disabled = false; micBtn.textContent = "🎤"; };
     }
 
     // === Welcome Message ===
     window.onload = () => addMessage(`
-      <strong>Hello!</strong> 👋 I'm your shopping assistant.
-      <ul>
-        <li>Find top products 🛒</li>
-        <li>Search the web 🔍</li>
-        <li>View market trends 📈</li>
-      </ul>
-      Try: <em>"best budget smartphone 2025"</em> or tap 🎤 to speak.
+      <strong>Hello!</strong> 👋 I'm your <em>Deal Hunter</em>.<br>
+      I find products with <strong>30%+ OFF</strong> and mark them as <span style="color:#d97706;font-weight:bold">BEST BUY</span>!<br><br>
+      Try: <em>"iPhone 15 discount"</em>, <em>"laptop 30% off"</em>, or tap 🎤 to speak.
     `);
   </script>
 </body>
