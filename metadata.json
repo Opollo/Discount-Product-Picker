@@ -1,0 +1,7 @@
+{
+  "name": "Kole Guide Grievance Chatbot",
+  "description": "An AI-powered chatbot to guide Kole District Local Government employees through the official grievance reporting process.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
