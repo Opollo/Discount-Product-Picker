@@ -1,0 +1,26 @@
+
+export const MAX_FILE_SIZE_MB = 5;
+export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+export const ALLOWED_FILE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+];
+
+export const DISTRICT_WHATSAPP_NUMBER = '256782724971';
+
+export const UGANDA_COAT_OF_ARMS_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Coat_of_arms_of_Uganda.svg/150px-Coat_of_arms_of_Uganda.svg.png';
+
+export const EVIDENCE_PROMPTS: { [key: string]: string } = {
+    'Working Conditions': 'Please describe the specific issues with your working conditions. Include details about the physical environment, safety concerns, or lack of necessary resources.',
+    'Harassment': 'Please provide details of the harassment incidents. Include dates, times, locations, what was said or done, and who was involved. Any witness information is also valuable.',
+    'Unfair Treatment': 'Describe the situations where you felt treated unfairly. Compare this treatment to how others in similar roles are treated, if possible. Include names, dates, and specific actions.',
+    'Compensation or Salary': 'Detail your concerns about compensation. This could include pay discrepancies, issues with allowances, or incorrect salary payments. Please provide relevant pay slips or documents if possible.',
+    'Job Description': 'Explain how your assigned duties differ from your official job description. Note any new responsibilities you have been given without a formal change in your role.',
+    'Performance Appraisal': 'Describe why you believe your performance appraisal was unfair. Point to specific examples of your work that were not considered and explain how the appraisal deviates from the standard process.',
+};
